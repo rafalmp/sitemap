@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,7 +15,15 @@ func main() {
 	urlFlag := flag.String("url", "https://gophercises.com", "the url of the site to build the map for")
 	flag.Parse()
 
-	resp, err := http.Get(*urlFlag)
+	pages := get(*urlFlag)
+
+	for _, page := range pages {
+		fmt.Println(page)
+	}
+}
+
+func get(urlStr string) []string {
+	resp, err := http.Get(urlStr)
 	if err != nil {
 		panic(err)
 	}
@@ -27,18 +36,20 @@ func main() {
 	}
 	base := baseUrl.String()
 
-	var hrefs []string
-	links, _ := link.Parse(resp.Body)
+	return hrefs(resp.Body, base)
+}
+
+func hrefs(r io.Reader, base string) []string {
+	var result []string
+	links, _ := link.Parse(r)
 	for _, l := range links {
 		switch {
 		case strings.HasPrefix(l.Href, "/"):
-			hrefs = append(hrefs, base+l.Href)
+			result = append(result, base+l.Href)
 		case strings.HasPrefix(l.Href, "http"):
-			hrefs = append(hrefs, l.Href)
+			result = append(result, l.Href)
 		}
 	}
 
-	for _, href := range hrefs {
-		fmt.Println(href)
-	}
+	return result
 }
