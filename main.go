@@ -36,7 +36,7 @@ func get(urlStr string) []string {
 	}
 	base := baseUrl.String()
 
-	return hrefs(resp.Body, base)
+	return filter(base, hrefs(resp.Body, base))
 }
 
 func hrefs(r io.Reader, base string) []string {
@@ -51,5 +51,15 @@ func hrefs(r io.Reader, base string) []string {
 		}
 	}
 
+	return result
+}
+
+func filter(base string, links []string) []string {
+	var result []string
+	for _, link := range links {
+		if strings.HasPrefix(link, base) {
+			result = append(result, link)
+		}
+	}
 	return result
 }
