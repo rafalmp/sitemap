@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/rafalmp/link"
@@ -14,17 +13,45 @@ import (
 
 func main() {
 	urlFlag := flag.String("url", "https://gophercises.com", "the url of the site to build the map for")
+	maxDepth := flag.Int("depth", 3, "maximum traversal depth")
 	flag.Parse()
 
-	pages, err := get(*urlFlag)
-	if err != nil {
-		fmt.Printf("Error getting %s: %v", *urlFlag, err)
-		os.Exit(1)
-	}
+	pages := bfs(*urlFlag, *maxDepth)
 
 	for _, page := range pages {
 		fmt.Println(page)
 	}
+}
+
+func bfs(urlStr string, maxDepth int) []string {
+	// go has no `set` data structure; one common way to implement it is to use
+	// map[string]struct{} as an empty struct's size is 0 so it occupies no memory.
+	seen := make(map[string]struct{})
+	var q map[string]struct{}
+	nq := map[string]struct{}{
+		urlStr: {},
+	}
+
+	for i := 0; i <= maxDepth; i++ {
+		q, nq = nq, make(map[string]struct{})
+		for url := range q {
+			if _, found := seen[url]; found {
+				continue
+			}
+			seen[url] = struct{}{}
+
+			links, _ := get(url)
+			for _, link := range links {
+				nq[link] = struct{}{}
+			}
+		}
+	}
+
+	result := make([]string, 0, len(seen))
+	for url := range seen {
+		result = append(result, url)
+	}
+	return result
 }
 
 func get(urlStr string) ([]string, error) {
