@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/rafalmp/link"
@@ -15,17 +16,21 @@ func main() {
 	urlFlag := flag.String("url", "https://gophercises.com", "the url of the site to build the map for")
 	flag.Parse()
 
-	pages := get(*urlFlag)
+	pages, err := get(*urlFlag)
+	if err != nil {
+		fmt.Printf("Error getting %s: %v", *urlFlag, err)
+		os.Exit(1)
+	}
 
 	for _, page := range pages {
 		fmt.Println(page)
 	}
 }
 
-func get(urlStr string) []string {
+func get(urlStr string) ([]string, error) {
 	resp, err := http.Get(urlStr)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -36,7 +41,7 @@ func get(urlStr string) []string {
 	}
 	base := baseUrl.String()
 
-	return filter(hrefs(resp.Body, base), withPrefix(base))
+	return filter(hrefs(resp.Body, base), withPrefix(base)), nil
 }
 
 func hrefs(r io.Reader, base string) []string {
