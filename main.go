@@ -1,15 +1,28 @@
 package main
 
 import (
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/rafalmp/link"
 )
+
+const xmlns = "http://www.sitemaps.org/schemas/sitemap/0.9"
+
+type loc struct {
+	Value string `xml:"loc"`
+}
+
+type urlset struct {
+	Xmlns string `xml:"xmlns,attr"`
+	Urls  []loc  `xml:"url"`
+}
 
 func main() {
 	urlFlag := flag.String("url", "https://gophercises.com", "the url of the site to build the map for")
@@ -18,9 +31,20 @@ func main() {
 
 	pages := bfs(*urlFlag, *maxDepth)
 
-	for _, page := range pages {
-		fmt.Println(page)
+	toXml := urlset{
+		Xmlns: xmlns,
 	}
+	for _, page := range pages {
+		toXml.Urls = append(toXml.Urls, loc{page})
+	}
+
+	enc := xml.NewEncoder(os.Stdout)
+	enc.Indent("", "  ")
+	fmt.Print(xml.Header)
+	if err := enc.Encode(toXml); err != nil {
+		panic(err)
+	}
+	fmt.Println()
 }
 
 func bfs(urlStr string, maxDepth int) []string {
